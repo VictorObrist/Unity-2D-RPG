@@ -1,28 +1,30 @@
 using UnityEngine;
 
-public class EntityState 
+public abstract class EntityState
 {
-    protected StateMachine stateMachine;
-    protected string stateName;
+    protected Player player;
+    protected StateMachine StateMachine;
+    protected string StateName;
     
-    public EntityState(StateMachine stateMachine, string stateName)
+    public EntityState(Player player, StateMachine stateMachine, string stateName)
     {
-        this.stateMachine = stateMachine;
-        this.stateName = stateName;
+        this.player = player;
+        this.StateMachine = stateMachine;
+        this.StateName = stateName;
     }
 
     public virtual void EnterState()
     {
-        Debug.Log($"Enter {stateName}");    
+        Debug.Log($"Enter {StateName}");    
     }
 
     public virtual void UpdateState()
     {
-        Debug.Log($"Update {stateName}");    
+        Debug.Log($"Update {StateName}");    
     }
     
     public virtual void ExitState()
     {
-        Debug.Log($"Exit {stateName}");   
+        Debug.Log($"Exit {StateName}");   
     }
 }
