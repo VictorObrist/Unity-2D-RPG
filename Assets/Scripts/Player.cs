@@ -4,36 +4,57 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
+    [Header("Movement details")] 
+    public float moveSpeed;
+    public float jumpForce = 5;
+    [Range(0f, 1f)]
+    public float inAirMovementMultiplier = .7f; // should be from 0 to 1
+    
+    [Header("Collision detection")]
+    [SerializeField] private float groundCheckDistance;
+    [SerializeField] private LayerMask whatIsGround;
+    public bool GroundDetected {get; private set;} 
+    
     #region PUBLIC VARIABLES
+    
+    #region PLAYER STATES
     public PlayerIdleState PlayerIdleState { get; private set; }
     public PlayerMoveState PlayerMoveState { get; private set; }
+    public PlayerJumpState PlayerJumpState { get; private set; }
+    public PlayerFallState PlayerFallState { get; private set; }
+    #endregion
     public Vector2 MoveInput { get; private set; }
-
+    public Animator Animator { get; private set; }
+    public Rigidbody2D Rigidbody2D { get; private set; }
+    public PlayerInputSet PlayerInput {get; private set;}
     #endregion
     
     #region PRIVATE VARIABLES
     private StateMachine _stateMachine;
-    private PlayerInputSet _playerInput;
-    
+    private bool _isFacingRight = true;
     #endregion
     
+    #region UNITY METHODS
     private void Awake()
     {
-        _stateMachine = new StateMachine();
-        _playerInput = new PlayerInputSet();
+        Animator = GetComponentInChildren<Animator>();
+        Rigidbody2D = GetComponent<Rigidbody2D>();
         
-        PlayerIdleState = new PlayerIdleState(this, _stateMachine, "IdleState");
-        PlayerMoveState = new PlayerMoveState(this, _stateMachine, "MoveState");
+        _stateMachine = new StateMachine();
+        PlayerInput = new PlayerInputSet();
+        
+        PlayerIdleState = new PlayerIdleState(this, _stateMachine, "idle");
+        PlayerMoveState = new PlayerMoveState(this, _stateMachine, "move");
+        PlayerJumpState = new PlayerJumpState(this, _stateMachine, "jumpFall");
+        PlayerFallState = new PlayerFallState(this, _stateMachine, "jumpFall");
     }
 
     private void OnEnable()
     {
-        _playerInput.Enable();
+        PlayerInput.Enable();
         
-        _playerInput.Player.Movement.performed += ctx => MoveInput = ctx.ReadValue<Vector2>();
-        _playerInput.Player.Movement.canceled += ctx => MoveInput = Vector2.zero;
-        
-        
+        PlayerInput.Player.Movement.performed += ctx => MoveInput = ctx.ReadValue<Vector2>();
+        PlayerInput.Player.Movement.canceled += ctx => MoveInput = Vector2.zero;
     }
 
     private void Start()
@@ -43,11 +64,48 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
+        HandleCollisionDetection();
         _stateMachine.UpdateActiveState();
     }
 
     private void OnDisable()
     {
-        _playerInput.Disable();
+        PlayerInput.Disable();
     }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawLine(transform.position, transform.position + new Vector3(0, -groundCheckDistance, 0));
+    }
+
+    #endregion
+    
+    #region PUBLIC METHODS
+    public void SetVelocity(float xVelocity, float yVelocity)
+    {
+        Rigidbody2D.linearVelocity = new Vector2(xVelocity, yVelocity);
+        HandleFlip(xVelocity);
+    }
+    #endregion
+   
+    #region PRIVATE METHODS
+    private void HandleFlip(float xVelocity)
+    {
+        if (xVelocity > 0 && !_isFacingRight)
+            Flip();
+        else if (xVelocity < 0 && _isFacingRight)
+            Flip();
+    }
+    
+    private void Flip()
+    {
+        transform.Rotate(0, 180, 0);
+        _isFacingRight = !_isFacingRight;
+    }
+
+    private void HandleCollisionDetection()
+    {
+        GroundDetected = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround);
+    }
+    #endregion
 } 
