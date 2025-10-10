@@ -9,11 +9,16 @@ public class Player : MonoBehaviour
     public float jumpForce = 5;
     [Range(0f, 1f)]
     public float inAirMovementMultiplier = .7f; // should be from 0 to 1
+   
     
     [Header("Collision detection")]
     [SerializeField] private float groundCheckDistance;
+    [SerializeField] private float wallCheckDistance;
+    [Range(0f, 1f)]
+    public float wallSlideSlowMultiplier = .3f;
     [SerializeField] private LayerMask whatIsGround;
     public bool GroundDetected {get; private set;} 
+    public bool WallDetected {get; private set;}
     
     #region PUBLIC VARIABLES
     
@@ -22,6 +27,7 @@ public class Player : MonoBehaviour
     public PlayerMoveState PlayerMoveState { get; private set; }
     public PlayerJumpState PlayerJumpState { get; private set; }
     public PlayerFallState PlayerFallState { get; private set; }
+    public PlayerWallSlideState PlayerWallSlideState { get; private set; }
     #endregion
     public Vector2 MoveInput { get; private set; }
     public Animator Animator { get; private set; }
@@ -32,6 +38,7 @@ public class Player : MonoBehaviour
     #region PRIVATE VARIABLES
     private StateMachine _stateMachine;
     private bool _isFacingRight = true;
+    private int facingDirection = 1;
     #endregion
     
     #region UNITY METHODS
@@ -47,6 +54,7 @@ public class Player : MonoBehaviour
         PlayerMoveState = new PlayerMoveState(this, _stateMachine, "move");
         PlayerJumpState = new PlayerJumpState(this, _stateMachine, "jumpFall");
         PlayerFallState = new PlayerFallState(this, _stateMachine, "jumpFall");
+        PlayerWallSlideState = new PlayerWallSlideState(this, _stateMachine, "wallSlide");
     }
 
     private void OnEnable()
@@ -75,7 +83,11 @@ public class Player : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position + new Vector3(0, -groundCheckDistance, 0));
+        
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(transform.position, transform.position + new Vector3(wallCheckDistance * facingDirection, 0, 0));
     }
 
     #endregion
@@ -85,6 +97,13 @@ public class Player : MonoBehaviour
     {
         Rigidbody2D.linearVelocity = new Vector2(xVelocity, yVelocity);
         HandleFlip(xVelocity);
+    }
+    
+    public void Flip()
+    {
+        transform.Rotate(0, 180, 0);
+        _isFacingRight = !_isFacingRight;
+        facingDirection = facingDirection * -1;
     }
     #endregion
    
@@ -97,15 +116,12 @@ public class Player : MonoBehaviour
             Flip();
     }
     
-    private void Flip()
-    {
-        transform.Rotate(0, 180, 0);
-        _isFacingRight = !_isFacingRight;
-    }
+    
 
     private void HandleCollisionDetection()
     {
         GroundDetected = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround);
+        WallDetected = Physics2D.Raycast(transform.position, Vector2.right * facingDirection, wallCheckDistance, whatIsGround);
     }
     #endregion
 } 
