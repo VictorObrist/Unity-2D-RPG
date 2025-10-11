@@ -9,7 +9,7 @@ public abstract class EntityState
     protected Animator Animator;
     protected Rigidbody2D Rigidbody2D;
     protected PlayerInputSet PlayerInput;
-    
+    protected float stateTimer;
     public EntityState(Player player, StateMachine stateMachine, string stateName)
     {
         this.player = player;
@@ -28,11 +28,29 @@ public abstract class EntityState
 
     public virtual void UpdateState()
     {
+        stateTimer -= Time.deltaTime;
+        
         Animator.SetFloat(YVelocity, Rigidbody2D.linearVelocity.y);
+        
+        if (PlayerInput.Player.Dash.WasPressedThisFrame() && CanDash())
+        {
+            StateMachine.ChangeState(player.PlayerDashState);
+        }
     }
     
     public virtual void ExitState()
     {
         Animator.SetBool(StateName, false);
+    }
+
+    private bool CanDash()
+    {
+        if (player.WallDetected)
+            return false;
+
+        if (StateMachine.CurrentState == player.PlayerDashState)
+            return false;
+        
+        return true;
     }
 }

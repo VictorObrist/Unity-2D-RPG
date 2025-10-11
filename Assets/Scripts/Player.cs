@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public class Player : MonoBehaviour
 {
@@ -9,6 +10,11 @@ public class Player : MonoBehaviour
     public float jumpForce = 5;
     [Range(0f, 1f)]
     public float inAirMovementMultiplier = .7f; // should be from 0 to 1
+    [Space]
+    public float dashDuration = .25f;
+
+    public float dashSpeed = 20;
+    
    
     
     [Header("Collision detection")]
@@ -17,10 +23,13 @@ public class Player : MonoBehaviour
     [Range(0f, 1f)]
     public float wallSlideSlowMultiplier = .3f;
     [SerializeField] private LayerMask whatIsGround;
-    public bool GroundDetected {get; private set;} 
-    public bool WallDetected {get; private set;}
+    
     
     #region PUBLIC VARIABLES
+    public bool GroundDetected {get; private set;} 
+    public bool WallDetected {get; private set;}
+    public int FacingDirection { get; private set; } = 1;
+    public Vector2 WallJumpForce;
     
     #region PLAYER STATES
     public PlayerIdleState PlayerIdleState { get; private set; }
@@ -28,6 +37,8 @@ public class Player : MonoBehaviour
     public PlayerJumpState PlayerJumpState { get; private set; }
     public PlayerFallState PlayerFallState { get; private set; }
     public PlayerWallSlideState PlayerWallSlideState { get; private set; }
+    public PlayerWallJumpState PlayerWallJumpState { get; private set; }
+    public PlayerDashState PlayerDashState { get; private set; }
     #endregion
     public Vector2 MoveInput { get; private set; }
     public Animator Animator { get; private set; }
@@ -38,7 +49,7 @@ public class Player : MonoBehaviour
     #region PRIVATE VARIABLES
     private StateMachine _stateMachine;
     private bool _isFacingRight = true;
-    private int facingDirection = 1;
+    
     #endregion
     
     #region UNITY METHODS
@@ -55,6 +66,8 @@ public class Player : MonoBehaviour
         PlayerJumpState = new PlayerJumpState(this, _stateMachine, "jumpFall");
         PlayerFallState = new PlayerFallState(this, _stateMachine, "jumpFall");
         PlayerWallSlideState = new PlayerWallSlideState(this, _stateMachine, "wallSlide");
+        PlayerWallJumpState = new PlayerWallJumpState(this, _stateMachine, "jumpFall");
+        PlayerDashState = new PlayerDashState(this, _stateMachine, "dash");
     }
 
     private void OnEnable()
@@ -87,7 +100,7 @@ public class Player : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + new Vector3(0, -groundCheckDistance, 0));
         
         Gizmos.color = Color.blue;
-        Gizmos.DrawLine(transform.position, transform.position + new Vector3(wallCheckDistance * facingDirection, 0, 0));
+        Gizmos.DrawLine(transform.position, transform.position + new Vector3(wallCheckDistance * FacingDirection, 0, 0));
     }
 
     #endregion
@@ -103,7 +116,7 @@ public class Player : MonoBehaviour
     {
         transform.Rotate(0, 180, 0);
         _isFacingRight = !_isFacingRight;
-        facingDirection = facingDirection * -1;
+        FacingDirection = FacingDirection * -1;
     }
     #endregion
    
@@ -121,7 +134,7 @@ public class Player : MonoBehaviour
     private void HandleCollisionDetection()
     {
         GroundDetected = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, whatIsGround);
-        WallDetected = Physics2D.Raycast(transform.position, Vector2.right * facingDirection, wallCheckDistance, whatIsGround);
+        WallDetected = Physics2D.Raycast(transform.position, Vector2.right * FacingDirection, wallCheckDistance, whatIsGround);
     }
     #endregion
 } 

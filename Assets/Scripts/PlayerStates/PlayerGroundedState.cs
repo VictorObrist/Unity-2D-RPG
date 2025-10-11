@@ -18,6 +18,5 @@ public class PlayerGroundedState : EntityState
         {
             StateMachine.ChangeState(player.PlayerJumpState);
         }
-
     }
 }
